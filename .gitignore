@@ -1,0 +1,43 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+\#*\#
+.project
+.settings/
+*.sublime-*
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Static site generator output (Hugo / Jekyll / etc.)
+public/
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
+# Node modules (if using npm for theme/tooling)
+node_modules/
+
+# Python (if using Python-based generators)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Drafts
+drafts/
