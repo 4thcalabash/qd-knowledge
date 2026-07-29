@@ -1,0 +1,19 @@
+title: QD Knowledge
+description: 技术笔记与随想
+author: 4thcalabash
+baseurl: "/qd-knowledge"
+url: "https://4thcalabash.github.io"
+
+markdown: kramdown
+highlighter: rouge
+
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: post
+
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
