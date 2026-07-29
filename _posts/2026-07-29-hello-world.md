@@ -24,12 +24,6 @@ def hello():
 
 > 学而不思则罔，思而不学则殆。
 
-### 图片
-
-后续可以在这里插入图片：
-
-![示例图片]({{ site.baseurl }}/assets/images/example.png)
-
 ---
 
 欢迎来到我的博客！🎉
