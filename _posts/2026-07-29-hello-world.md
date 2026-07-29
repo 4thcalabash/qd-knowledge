@@ -24,6 +24,10 @@ def hello():
 
 > 学而不思则罔，思而不学则殆。
 
+### 图片示例
+
+![Emoji]({{ site.baseurl }}/assets/images/emoji-smile.svg)
+
 ---
 
 欢迎来到我的博客！🎉

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200">
+  <!-- 脸 -->
+  <circle cx="50" cy="50" r="45" fill="#FFCC02" stroke="#E6A800" stroke-width="2"/>
+  <!-- 眼睛 -->
+  <circle cx="35" cy="40" r="5" fill="#333"/>
+  <circle cx="65" cy="40" r="5" fill="#333"/>
+  <!-- 嘴巴 -->
+  <path d="M 30 60 Q 50 80 70 60" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round"/>
+</svg>
