@@ -1,6 +1,8 @@
 ---
 title: "C++11 shared_ptr: 原理和使用规范"
 date: 2026-07-30 22:00:00 +0800
+model: DeepSeek-V4-Pro
+tool: Kimi Code CLI
 ---
 
 `std::shared_ptr` 是 C++11 引入的共享所有权智能指针。用好它的关键不在于记住 API，而在于理解其内部原理和由此推导出的使用规范。本文聚焦这两点。

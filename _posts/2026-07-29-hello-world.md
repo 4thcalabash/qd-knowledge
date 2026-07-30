@@ -1,6 +1,8 @@
 ---
 title: Hello, World!
 date: 2026-07-29 22:00:00 +0800
+model: DeepSeek-V4-Pro
+tool: Kimi Code CLI
 ---
 
 这是我的第一篇博客文章。

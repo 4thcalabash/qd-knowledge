@@ -50,6 +50,8 @@ arguments:
 ---
 title: <文章标题>
 date: YYYY-MM-DD HH:MM:SS +0800
+model: DeepSeek-V4-Pro
+tool: Kimi Code CLI
 ---
 ```
 
