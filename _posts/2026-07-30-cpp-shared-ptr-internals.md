@@ -1,5 +1,5 @@
 ---
-title: C++ shared_ptr 快速入门：实现原理与使用规范
+title: C++11 shared_ptr: 原理和使用规范
 date: 2026-07-30 22:00:00 +0800
 ---
 
