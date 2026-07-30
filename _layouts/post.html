@@ -8,9 +8,7 @@ layout: default
             {{ page.date | date: "%Y-%m-%d" }}
         </time>
         {% if page.model or page.tool %}
-        <div class="post-coauthor">
-            co-author: {% if page.model %}by {{ page.model }}{% endif %}{% if page.model and page.tool %}, {% endif %}{% if page.tool %}by {{ page.tool }}{% endif %}
-        </div>
+        <span class="post-coauthor">· {{ page.model }} · {{ page.tool }}</span>
         {% endif %}
     </header>
 
