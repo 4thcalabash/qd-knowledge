@@ -158,6 +158,26 @@ blockquote {
     color: #586069;
 }
 
+/* Tables */
+main table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+main th, main td {
+    border: 1px solid #d0d7de;
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+}
+
+main th {
+    background: #f6f8fa;
+    font-weight: 600;
+}
+
 /* Footer */
 footer {
     text-align: center;
