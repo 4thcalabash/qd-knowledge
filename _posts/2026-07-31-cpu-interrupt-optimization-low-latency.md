@@ -1,5 +1,5 @@
 ---
-title: "低延迟系统的中断优化：CPU 隔离、大页与内核旁路"
+title: "中断和异常优化：CPU 隔离、大页与内核旁路"
 date: 2026-07-31 17:40:00 +0800
 model: DeepSeek-V4-Flash-0731
 tool: Kimi Code CLI
@@ -44,7 +44,7 @@ isolcpus=2,3 nohz_full=2,3 rcu_nocbs=2,3
 
 用户态进程无法直接执行 `cli` 指令关闭 CPU 中断（ring0 特权指令，用户态执行触发 #GP 异常），"关中断"通过上述系统配置实现。
 
-## 大页内存：消除 TLB miss 与运行期 page fault
+## ⭐ 大页内存：消除 TLB miss 与运行期 page fault
 
 hugepage（通常设置为 2MB 或 1GB）的主要好处：
 
@@ -53,7 +53,7 @@ hugepage（通常设置为 2MB 或 1GB）的主要好处：
 
 > 低延迟系统通常显式关闭 THP（透明大页）：后台线程 `khugepaged` 会定期执行页合并，引入周期性抖动。大页改用 `hugetlbfs` 显式管理。
 
-## 内核旁路（Bypass）：消除硬中断、软中断与系统调用
+## ⭐ 内核旁路（Bypass）：消除硬中断、软中断与系统调用
 
 传统网络路径中，一次收包需要经过**硬件中断 → 软中断（NET_RX）→ 系统调用**三次执行流中断（见下图），每次都伴随上下文切换与数据拷贝。
 
@@ -71,6 +71,7 @@ hugepage（通常设置为 2MB 或 1GB）的主要好处：
 | "关中断"（业务核） | tick、外设 IRQ、IPI（经配置移除） | 业务核执行流不被中断 |
 | 大页 + 预分配 | 运行期 page fault | TLB miss 消除 |
 | Onload / bypass | 硬中断、softirq、syscall | 零拷贝、零上下文切换 |
+
 
 隔离和大页针对"周期性/结构性中断"，bypass 针对"事件驱动的中断"，两者相互独立，低延迟系统通常需同时采用。
 
