@@ -39,7 +39,7 @@ isolcpus=2,3 nohz_full=2,3 rcu_nocbs=2,3
 用户态进程无法直接关闭 CPU 的中断：`cli` 是 ring0 特权指令，用户态执行会触发 #GP 异常。低延迟语境下的"关中断"实际是三个层级的操作：
 
 - **内核模块层**：`local_irq_save()` / `local_irq_restore()` 关闭当前 CPU 的中断响应，用于内核/驱动代码保护临界区；代价是临界区内不能睡眠，关闭窗口应尽可能短。
-- **应用层：减少外部中断源**：通过 irq affinity 将外设 IRQ 绑定到其他核心，或通过 DPDK 用户态轮询驱动使网卡不产生中断（busy polling 保留中断路径，但可降低中断处理频率）。
+- **应用层：减少外部中断源**：通过 irq affinity 将外设 IRQ 绑定到其他核心，或通过 Onload 等用户态网络栈将数据收发路径移至用户态（busy polling 保留中断路径，但可降低中断处理频率）。
 - **消除周期性 tick**：即 `nohz_full`。
 
 ## 大页内存：消除 TLB miss 与运行期 page fault
@@ -57,9 +57,9 @@ isolcpus=2,3 nohz_full=2,3 rcu_nocbs=2,3
 
 ![传统内核路径的三次执行流中断]({{ site.baseurl }}/assets/images/cpu-interrupt-paths.svg)
 
-**内核旁路（bypass）**：通过 DPDK 等用户态轮询驱动，使网卡 DMA 直达用户态内存、收发不再经过中断与系统调用（零中断、零 syscall、零拷贝）；或以 io_uring 批量提交请求、减少 syscall 次数。代价是轮询模式下 CPU 持续占用。
+**内核旁路（bypass）**：通过 Onload 等用户态网络栈，将数据收发路径从内核移至用户态，避免中断与系统调用开销；或以 io_uring 批量提交请求、减少 syscall 次数。
 
-> bypass 的完整实现原理（DPDK 轮询模型、io_uring 的 SQPOLL 模式等）将在后续文章中单独展开。
+> bypass 的完整实现原理（Onload 用户态协议栈、io_uring 的 SQPOLL 模式等）将在后续文章中单独展开。
 
 ## 汇总对照
 
@@ -68,7 +68,7 @@ isolcpus=2,3 nohz_full=2,3 rcu_nocbs=2,3
 | CPU 隔离 + nohz_full | tick、调度 IPI、抢占、RCU IPI | 执行流确定性 |
 | "关中断"（用户态） | 外设 IRQ（重定向或经轮询消除） | — |
 | 大页 + 预分配 | 运行期 page fault | TLB miss 消除 |
-| DPDK / bypass | 硬中断、softirq、syscall | 零拷贝、零上下文切换 |
+| Onload / bypass | 硬中断、softirq、syscall | 零拷贝、零上下文切换 |
 
 隔离和大页针对"周期性/结构性中断"，bypass 针对"事件驱动的中断"，两者相互独立，低延迟系统通常需同时采用。
 
