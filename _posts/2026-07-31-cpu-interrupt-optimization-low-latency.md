@@ -46,10 +46,10 @@ isolcpus=2,3 nohz_full=2,3 rcu_nocbs=2,3
 
 ## 大页内存：消除 TLB miss 与运行期 page fault
 
-大页解决两类问题：
+hugepage（通常设置为 2MB 或 1GB）的主要好处：
 
-- **TLB miss（微架构层）**：hugepage 通常设置为 2MB 或 1GB——2MB 大页使单页覆盖范围扩大 512 倍，显著降低 TLB miss 率；1GB 大页可让 TLB 覆盖全部工作集，命中率趋近 100%，避免了每次 miss 时多级页表遍历（page walk）的几十周期开销。
-- **运行期 page fault（异常层）**：默认 4KB 页配合惰性分配，首次访问（touch）才触发 page fault 分配物理页，在用户态执行流中插入一次异常处理并伴随锁竞争。启动阶段通过大页 + `mlock` 预分配并锁定物理内存，可使运行期零 fault、零换页。
+- **TLB 页表更小，查询更快**：大页减少了多级页表的中间层级，页表遍历与 TLB 查询更快；
+- **几乎消除 TLB miss 与运行期 page fault**：2MB 大页使单页覆盖范围扩大 512 倍，1GB 大页可让 TLB 覆盖全部工作集，几乎消除 TLB miss；配合启动阶段预分配并 `mlock` 锁定物理内存，避免运行期 page fault。
 
 > 低延迟系统通常显式关闭 THP（透明大页）：后台线程 `khugepaged` 会定期执行页合并，引入周期性抖动。大页改用 `hugetlbfs` 显式管理。
 
