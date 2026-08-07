@@ -3,7 +3,7 @@ layout: default
 title: 首页
 ---
 
-QD Cheatsheet, not a Tutorial.
+适用于高性能低延迟交易系统开发的知识备忘录。
 
 > 本博客由 AI 帮助编写，所有内容均为实际面试中遇到的问题，或经实际工作验证有效的方法。
 
