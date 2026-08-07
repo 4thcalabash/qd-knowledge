@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="470" viewBox="0 0 760 470" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#888"/>
+    </marker>
+  </defs>
+
+  <text x="20" y="32" font-size="16" font-weight="bold" fill="#333">虚函数调用：三次访存与两次依赖加载</text>
+
+  <!-- 框1：对象 -->
+  <rect x="210" y="58" width="280" height="62" rx="6" fill="#eef4ff" stroke="#4a7ac7"/>
+  <text x="350" y="82" text-anchor="middle" font-size="13" fill="#333">对象（vptr 字段，通常偏移 0）</text>
+  <text x="350" y="103" text-anchor="middle" font-size="12" fill="#4a7ac7">① mov rax, [rdi]</text>
+
+  <line x1="350" y1="120" x2="350" y2="150" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 框2：vtable -->
+  <rect x="210" y="152" width="280" height="62" rx="6" fill="#eef4ff" stroke="#4a7ac7"/>
+  <text x="350" y="176" text-anchor="middle" font-size="13" fill="#333">vtable（函数指针数组）</text>
+  <text x="350" y="197" text-anchor="middle" font-size="12" fill="#4a7ac7">② mov rax, [rax + slot*8]</text>
+
+  <line x1="350" y1="214" x2="350" y2="244" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 框3：函数指针 -->
+  <rect x="210" y="246" width="280" height="62" rx="6" fill="#eef4ff" stroke="#4a7ac7"/>
+  <text x="350" y="270" text-anchor="middle" font-size="13" fill="#333">函数指针（目标地址）</text>
+  <text x="350" y="291" text-anchor="middle" font-size="12" fill="#4a7ac7">③ call rax（间接调用）</text>
+
+  <line x1="350" y1="308" x2="350" y2="338" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 框4：目标代码 -->
+  <rect x="210" y="340" width="280" height="62" rx="6" fill="#fff3e6" stroke="#d08a2e"/>
+  <text x="350" y="364" text-anchor="middle" font-size="13" fill="#333">目标代码（具体类型的实现）</text>
+  <text x="350" y="385" text-anchor="middle" font-size="12" font-weight="bold" fill="#d08a2e">目标多变 → 预测失败 → 流水线冲刷</text>
+
+  <!-- 右侧依赖注释 -->
+  <text x="512" y="86" font-size="12" fill="#888">依赖加载 1：由对象取 vtable 地址</text>
+  <text x="512" y="180" font-size="12" fill="#888">依赖加载 2：与 ① 串行等待</text>
+  <text x="512" y="274" font-size="12" fill="#888">跳转目标此刻才确定，无法预取指令</text>
+  <text x="512" y="368" font-size="12" fill="#888">预测失败惩罚约 15~25 周期</text>
+
+  <!-- 底部说明 -->
+  <text x="20" y="440" font-size="12" fill="#888">两次加载处于关键路径上；目标地址确定前，CPU 无法预取目标指令，无法内联则损失全部跨调用优化</text>
+</svg>
