@@ -7,11 +7,6 @@ url: "https://4thcalabash.github.io"
 markdown: kramdown
 highlighter: rouge
 
-kramdown:
-  syntax_highlighter_opts:
-    block:
-      line_numbers: true
-
 defaults:
   - scope:
       path: ""
