@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="560" viewBox="0 0 760 560" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#4a7ac7"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#d08a2e"/>
+    </marker>
+  </defs>
+
+  <text x="20" y="32" font-size="16" font-weight="bold" fill="#333">缓存逐级查询：cache miss 的完整路径与整行取回</text>
+
+  <!-- 泳道头 -->
+  <rect x="27"  y="52" width="105" height="52" rx="6" fill="#eef4ff" stroke="#4a7ac7"/>
+  <text x="79"  y="84" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">Core</text>
+
+  <rect x="152" y="52" width="105" height="52" rx="6" fill="#eef4ff" stroke="#4a7ac7"/>
+  <text x="204" y="84" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">L1</text>
+
+  <rect x="277" y="52" width="105" height="52" rx="6" fill="#eef4ff" stroke="#4a7ac7"/>
+  <text x="329" y="84" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">L2</text>
+
+  <rect x="402" y="52" width="105" height="52" rx="6" fill="#eef4ff" stroke="#4a7ac7"/>
+  <text x="454" y="84" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">L3</text>
+
+  <rect x="527" y="52" width="105" height="52" rx="6" fill="#fff3e6" stroke="#d08a2e"/>
+  <text x="579" y="84" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">主内存</text>
+
+  <!-- 泳道分隔线 -->
+  <line x1="79"  y1="104" x2="79"  y2="520" stroke="#e8e8e8" stroke-width="1"/>
+  <line x1="204" y1="104" x2="204" y2="520" stroke="#e8e8e8" stroke-width="1"/>
+  <line x1="329" y1="104" x2="329" y2="520" stroke="#e8e8e8" stroke-width="1"/>
+  <line x1="454" y1="104" x2="454" y2="520" stroke="#e8e8e8" stroke-width="1"/>
+  <line x1="579" y1="104" x2="579" y2="520" stroke="#e8e8e8" stroke-width="1"/>
+
+  <!-- 查询（下行，miss） -->
+  <line x1="79" y1="126" x2="204" y2="126" stroke="#4a7ac7" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="141" y="118" text-anchor="middle" font-size="12" fill="#333">① 访问：L1 cache miss</text>
+
+  <line x1="204" y1="172" x2="329" y2="172" stroke="#4a7ac7" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="266" y="164" text-anchor="middle" font-size="12" fill="#333">② 查询：L2 cache miss</text>
+
+  <line x1="329" y1="218" x2="454" y2="218" stroke="#4a7ac7" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="391" y="210" text-anchor="middle" font-size="12" fill="#333">③ 查询：L3 cache miss</text>
+
+  <line x1="454" y1="264" x2="579" y2="264" stroke="#4a7ac7" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="516" y="256" text-anchor="middle" font-size="12" fill="#333">④ 查询：主内存</text>
+
+  <!-- 取回（上行，填充） -->
+  <line x1="579" y1="310" x2="454" y2="310" stroke="#d08a2e" stroke-width="2" marker-end="url(#arrow-orange)"/>
+  <text x="516" y="302" text-anchor="middle" font-size="12" fill="#d08a2e">⑤ 返回整行 cache line（64 B）</text>
+
+  <line x1="454" y1="356" x2="329" y2="356" stroke="#d08a2e" stroke-width="2" marker-end="url(#arrow-orange)"/>
+  <text x="391" y="348" text-anchor="middle" font-size="12" fill="#d08a2e">⑥ 填充 L2</text>
+
+  <line x1="329" y1="402" x2="204" y2="402" stroke="#d08a2e" stroke-width="2" marker-end="url(#arrow-orange)"/>
+  <text x="266" y="394" text-anchor="middle" font-size="12" fill="#d08a2e">⑦ 填充 L1</text>
+
+  <line x1="204" y1="448" x2="79" y2="448" stroke="#d08a2e" stroke-width="2" marker-end="url(#arrow-orange)"/>
+  <text x="141" y="440" text-anchor="middle" font-size="12" fill="#d08a2e">⑧ 数据可用：后续访问 cache hit</text>
+
+  <!-- 底部说明 -->
+  <text x="20" y="502" font-size="12" fill="#888">查询自上而下逐级进行，任一命中即返回；取回以整条 cache line 为单位逐级填充，整个过程由硬件完成，对软件透明</text>
+  <text x="20" y="522" font-size="12" fill="#888">cache line 被失效后（如伪共享写失效），下一次访问即从 ① 重新走完整条路径——这就是"失效等价于强制 cache miss"</text>
+</svg>
