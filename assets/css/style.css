@@ -307,3 +307,29 @@ footer a {
   color: #24292f;
   font-weight: bold;
 }
+
+/* Rouge line numbers (kramdown linenos mode) */
+.highlight table {
+    border-collapse: collapse;
+    width: 100%;
+}
+.highlight table td {
+    padding: 0;
+    vertical-align: top;
+}
+.highlight table td.linenos {
+    padding-right: 12px;
+    border-right: 1px solid #e1e4e8;
+    color: #a0a8b0;
+    text-align: right;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.highlight table td.linenos .lineno {
+    display: block;
+    padding: 0 4px;
+}
+.highlight table pre {
+    margin: 0;
+    border-radius: 0;
+}
