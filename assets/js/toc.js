@@ -34,7 +34,7 @@
                 cur3 = { el: h, items: [] };
                 cur2.items.push(cur3);
             }
-            cur3.items.push(h);
+            cur3.items.push({ el: h });
         }
     });
 
