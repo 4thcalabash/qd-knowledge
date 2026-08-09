@@ -14,7 +14,7 @@ body {
 }
 
 .container {
-    max-width: 720px;
+    max-width: 880px;
     margin: 0 auto;
     padding: 0 20px;
 }
@@ -155,8 +155,8 @@ main a:hover {
     -webkit-backdrop-filter: blur(4px);
 }
 
-/* 屏幕足够宽时显示：正文 720px 居中后与侧边栏不重叠 */
-@media (min-width: 1360px) {
+/* 屏幕足够宽时显示：正文 880px 居中后与侧边栏不重叠 */
+@media (min-width: 1440px) {
     .toc-sidebar {
         display: block;
     }
