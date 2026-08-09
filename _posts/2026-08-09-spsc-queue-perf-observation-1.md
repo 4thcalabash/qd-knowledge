@@ -5,12 +5,12 @@ model: DeepSeek-V4-Flash
 tool: Claude Code CLI
 ---
 
-性能优化的前提是准确的观测。本文以 Linux 官方性能剖析工具 perf 为主线，介绍性能观测的三层方法论——**全局计数、调用栈采样、系统调用追踪**——并给出每层工具的用法、输出解读与适用场景。本文以 SPSC 的优化为例演示性能观测工具的使用方法，全部命令与输出均为真实运行结果。
+性能优化的前提是准确的观测。本文以 Linux 官方性能剖析工具 perf 为主线，介绍性能观测的三层方法论——**全局计数、调用栈采样、系统调用追踪**——并给出每层工具的用法、输出解读与适用场景。本文以 SPSC 的优化为例演示性能观测工具的使用方法，全部命令与输出（包括失真数据）均为真实运行结果。
 
 - 目录
 {:toc}
 
-> **环境提示**：本文使用 WSL2 进行测试。TODO：使用真实 Linux 进行测试。
+> **环境提示**：本文在 WSL2 与 Linux VM 上运行。虚拟化环境下部分数值会失真，失真数据均在文中标注。
 
 ## 观测方法论：计数、采样、追踪
 
@@ -22,7 +22,7 @@ tool: Claude Code CLI
 | 采样 | `perf record` / `perf top` | 热点在哪个函数、哪条指令？ | 调用栈/指令 | 低（周期性中断） |
 | 追踪 | `perf trace` | 程序与内核如何交互？ | 单次系统调用 | 中（事件流捕获） |
 
-三层方法呈递进关系：计数给出总量，采样定位位置，追踪解释机制。实际排查通常从计数开始，发现异常后进入采样定位热点，必要时用追踪还原因果链。三者的共同前提是**可复现的基准**：固定输入规模与运行方式，保证每次观测结果可比。本文演示程序中，两个工作线程通过 `pthread_setaffinity_np` 固定绑定到不同物理核（cpu 0/1），模拟常见的并行环境；测试规模固定为 3000 万条消息。
+三者呈递进关系：计数给总量、采样定位热点、追踪解释机制，排查通常沿此顺序推进。共同前提是**可复现的基准**：本文演示程序将两个工作线程经 `pthread_setaffinity_np` 固定绑定到不同物理核（cpu 0/1），测试规模固定为 3000 万条消息，保证观测结果可比。演示程序源码见 [main.cpp](https://github.com/4thcalabash/qd-knowledge/blob/master/_demo/spsc_perf_test/main.cpp)、[spsc_naive_mutex.hpp](https://github.com/4thcalabash/qd-knowledge/blob/master/_demo/spsc_perf_test/include/spsc_naive_mutex.hpp)、[Makefile](https://github.com/4thcalabash/qd-knowledge/blob/master/_demo/spsc_perf_test/Makefile)。
 
 ## 环境准备：事件可用性检查
 
@@ -31,7 +31,9 @@ tool: Claude Code CLI
 - **硬件事件**（`cycles`、`instructions`、`cache-misses` 等）：来自 CPU 的 PMU 计数器，需硬件支持；
 - **软件事件**（`cpu-clock`、`page-faults`、`context-switches` 等）：由内核计数，任何环境可用。
 
-本机实测（WSL2）`perf list` 输出：
+硬件事件是否可用、可用到哪一层，取决于运行环境。本次在两种环境实测，恰好呈现"缺失"与"存在但失真"两档：
+
+**WSL2：硬件事件完全缺失**
 
 ```text
   cpu-clock                                          [Software event]
@@ -43,7 +45,42 @@ tool: Claude Code CLI
   sdt_libc:lll_lock_wait                             [SDT event]
 ```
 
-**硬件事件完全缺失**，硬件级观测（cache miss 率、PEBS、LBR、perf c2c）不可用；软件事件、调用栈采样与追踪不受影响。排查前先 `perf list` 确认可用事件，避免命令失败后才回头排查。
+**云 Linux VM：硬件事件存在**
+
+```text
+# perf list hw
+  branch-instructions OR branches                    [Hardware event]
+  branch-misses                                      [Hardware event]
+  cache-misses                                       [Hardware event]
+  cache-references                                   [Hardware event]
+  cpu-cycles OR cycles                               [Hardware event]
+  instructions                                       [Hardware event]
+  stalled-cycles-backend OR idle-cycles-backend      [Hardware event]
+  stalled-cycles-frontend OR idle-cycles-frontend    [Hardware event]
+
+# perf list cache
+  L1-dcache-load-misses                              [Hardware cache event]
+  L1-dcache-loads                                    [Hardware cache event]
+  L1-dcache-prefetches                               [Hardware cache event]
+  L1-icache-load-misses                              [Hardware cache event]
+  L1-icache-loads                                    [Hardware cache event]
+  branch-load-misses                                 [Hardware cache event]
+  branch-loads                                       [Hardware cache event]
+  dTLB-load-misses                                   [Hardware cache event]
+  dTLB-loads                                         [Hardware cache event]
+  iTLB-load-misses                                   [Hardware cache event]
+  iTLB-loads                                         [Hardware cache event]
+```
+
+两档对比：
+
+| 环境 | 硬件事件 | 说明 |
+|------|---------|------|
+| WSL2 | 完全缺失 | 硬件级观测（cache miss 率、PEBS、LBR、perf c2c）不可用 |
+| 云 Linux VM | 核心事件齐全，cache 事件部分缺失 | 缺失 LLC（末级缓存）与 L1-dcache-stores——多数虚拟化环境不向 guest 暴露 LLC 计数 |
+| 物理机 | 全部可用且数值可信 | 理想参照，本文未实测 |
+
+注意：**事件存在 ≠ 数值可信**。VM 上事件能列出、能计数，但读数失真（见 perf stat 一节）。排查前先 `perf list` 确认可用事件，同时警惕虚拟化环境下把坏读数当作性能结论。
 
 ## perf stat：全局计数
 
@@ -103,6 +140,43 @@ perf stat -e task-clock,page-faults ./bin/spsc_naive_mutex   # 显式指定事�
 `CPUs utilized` 与 `context-switches` 两个字段组合即可推断并发形态：双线程程序该值应接近 2.0，实测仅 1.578，说明线程存在大量不占用 CPU 的等待；同时 0 次 context-switch 说明等待极短、走的是自旋而非调度睡眠。这已指向"短临界区锁竞争"的形态。
 
 `user`/`sys` 时间值得注意：内核态时间（1.358 s）与用户态时间（1.865 s）同量级，说明大量时间耗在内核路径（futex 系统调用），而非纯用户态计算——与后文 `perf trace` 的 futex 观测相互印证。
+
+### 硬件事件计数：事件在，数值失真
+
+同一程序在云 VM 上运行，请求计数硬件事件（cycles、instructions、branches、branch-misses、stalled-cycles-frontend/backend 等）。以下输出中标注 **失真** 的为虚拟化下不可信的计数，仅展示事件输出形态：
+
+```text
+ Performance counter stats for './bin/spsc_naive_mutex':
+
+         10,453.70 msec task-clock                #    1.878 CPUs utilized
+             9,707      context-switches          #    0.929 K/sec
+                 2      cpu-migrations            #    0.000 K/sec
+            13,837      page-faults               #    0.001 M/sec
+755,777,057,308,007,040      cycles                    # 72297590.490 GHz    失真   (66.83%)
+750,726,875,787,298,432      stalled-cycles-frontend   #   99.33% frontend cycles idle    失真   (67.28%)
+816,092,403,685,446,144      stalled-cycles-backend    #  107.98% backend cycles idle    失真   (67.39%)
+814,215,035,424,200,960      instructions              #    1.08  insn per cycle    失真
+                                                  #    1.00  stalled cycles per insn  (66.58%)
+809,042,397,513,195,008      branches                  # 77392949916.222 M/sec    失真   (65.77%)
+816,518,889,222,270,208      branch-misses             #  100.92% of all branches    失真   (66.14%)
+
+       5.566710730 seconds time elapsed
+
+       1.007485000 seconds user
+       5.223233000 seconds sys
+```
+
+三处"物理不可能"信号（行尾 `(66.83%)` 是计数器复用比例，见下）：
+
+- **比例超过 100%**：`branch-misses 100.92%`、`stalled-cycles-backend 107.98%`——任何真实硬件都不会产生超过 100% 的比例；
+- **频率离谱**：cycles 折算 72297590 GHz（约 7 万 GHz），远超任何 CPU 主频；
+- **各计数器同量级**：cycles / instructions / branches / stalled-* 全部落在 7.5e17 ~ 8.2e17——真实情况下这几者必然相差数量级。
+
+对照软件事件：task-clock（10.4 s）、context-switches（9707）、page-faults（13837）均与 WSL2 同形态、数值合理——**失真只发生在硬件 PMU 路径**，内核计数的软件事件不受影响。这是虚拟化环境下硬件计数的完整签名：**事件可列出、输出格式正确、数值不可信**。读到此类输出应首先怀疑计数器本身，而不是程序。
+
+环境差异本身也是观测结论的一部分：同程序在 WSL2 上墙钟约 2.0 s、VM 上约 5.6 s；VM 上 `sys`（5.22 s）远高于 `user`（1.01 s），futex 往返在内核路径的成本被放大；context-switches 在 WSL2 为 0，VM 上为 9707——云 VM 与宿主共享物理核，guest 线程易被周期性抢占。虚拟化环境的时间绝对数值不具备跨环境可比性。
+
+行尾复用比例补充：请求的事件多于可用硬件计数器时，perf 分时复用计数器、按实际计数时长折算（multiplexing），`(66.83%)` 即占用计数器的时长比例，比例越低折算误差越大。VM 上可用硬件计数器少于事件数，复用必然发生，是读数失真的又一叠加因素。
 
 ### 局限
 
@@ -169,6 +243,8 @@ perf report -i /tmp/perf_mutex.data --stdio
 
 `perf top` 是同一采样机制的实时版本，周期性刷新当前热点，适用于交互式排查（如观察某负载下的瞬时热点），无需预先记录。
 
+> **VM 待补**：以硬件 `cycles` 为采样事件的 `perf record` 在 VM 上的报告待实测补充——硬件计数器失真时，采样地址是否可信（取决于中断是否真实触发、样本是否真实产生）值得单独验证。VM 上 `cache-references`/`cache-misses` 读数、TMA 指标同样待补。
+
 ## perf trace：系统调用追踪
 
 `perf trace` 捕获进程的系统调用，功能与 strace 重叠，但**实现机制不同**：strace 基于 ptrace 逐条拦截，开销大；`perf trace` 直接订阅内核 syscall 事件，对被测程序的时序影响低约一个数量级——对低延迟程序，这决定了工具本身是否改变测量对象。
@@ -218,6 +294,7 @@ perf trace -e futex,mmap ./bin/spsc_naive_mutex          # 事件过滤
 - **样本量不足**：采样是统计估计，运行时间过短（如低于百毫秒）样本过少，报告失真；保证足够的运行时长或消息量。
 - **工具自身的干扰**：追踪类工具（strace 尤甚）会改变被测程序的时序，观察结果不能直接等同于无工具状态；计数与采样干扰最小，优先使用。
 - **事件可用性未确认**：硬件事件缺失时命令静默回退或报 `<not supported>`，先 `perf list` 确认，避免误读。
+- **虚拟化计数失真**：事件存在 ≠ 数值可信（见"硬件事件计数"一节）。识别信号：比例超 100%、频率超物理可能、各计数器同量级。此时硬件计数只用于展示可观测事件，不能作性能结论；软件事件与调用栈采样通常仍可用。
 
 ## 工具选型速查
 
@@ -229,8 +306,10 @@ perf trace -e futex,mmap ./bin/spsc_naive_mutex          # 事件过滤
 | 系统调用行为与耗时 | `perf trace` | `perf trace --summary -e futex ./app` |
 | 可用事件清单 | `perf list` | `perf list` |
 
+上表在物理机上全部可用；WSL2 缺全部硬件事件（采样自动回退软件事件）；云 VM 事件可列出但硬件计数失真。环境差异先行确认（`perf list`），再选择工具与解读读数。
+
 真机上（硬件 PMU 可用）的进阶手段：`perf record -e cycles:pp`（PEBS 精确采样，消除 skid）、`--call-graph lbr`（硬件调用栈）、`perf mem` / `perf c2c`（内存访问与伪共享定位）、`perf script` 配合 flamegraph 生成火焰图。
 
 ---
 
-> **小结**：性能观测按"计数 → 采样 → 追踪"三层组织：`perf stat` 给总量并推断并发形态，`perf record`/`perf report` 以采样统计定位热点（区分 Self 与 Children），`perf trace` 量化系统调用成本并还原机制。以 SPSC 队列 v1（mutex + deque）为例，三层证据一致指向锁竞争：约 65.7% 采样时间在 lock/unlock，98 万次 futex 调用累计约 1.5 s、占据运行时间一半以上，其中 36 万次为 EAGAIN 往返。观测先行，环境确认（`perf list`）在前，工具选择遵循"干扰最小优先"。演示代码位于 `_demo/spsc_perf_test/`，Makefile 以 `IMPLS` 列表统一管理各版本。
+> **小结**：性能观测按"计数 → 采样 → 追踪"三层组织：`perf stat` 给总量并推断并发形态，`perf record`/`perf report` 以采样统计定位热点（区分 Self 与 Children），`perf trace` 量化系统调用成本并还原机制。以 SPSC 队列 v1（mutex + deque）为例，三层证据一致指向锁竞争：约 65.7% 采样时间在 lock/unlock，98 万次 futex 调用累计约 1.5 s、占据运行时间一半以上，其中 36 万次为 EAGAIN 往返。运行环境决定可观测事件全集：物理机全部可用，WSL2 硬件事件缺失，云 VM 事件存在但数值失真——先 `perf list` 确认环境再解读数据，虚拟化下的硬件计数只用于展示事件全貌，不作数值结论。
