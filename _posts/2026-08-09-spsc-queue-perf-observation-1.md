@@ -12,7 +12,7 @@ tool: Claude Code CLI
 
 > **环境提示**：本文在 WSL2 与 Linux VM 上运行。两种环境下部分事件缺失或数值失真，已在文中逐处标注。
 
-## 观测方法论：**计数、采样、追踪**
+## ⭐ 观测方法论：计数、采样、追踪
 
 **一切的观测都是基于事件的**：perf 观测的不是"程序本身"，而是程序执行过程中发生的事件——CPU 周期、指令、缓存访问、分支、系统调用、缺页、调度切换等。工具做三件事：计数事件、对事件采样、追踪事件流。事件从何而来、是否可用，决定了一切观测手段的边界，这正是下一节"环境准备"的动机。
 
@@ -80,7 +80,7 @@ tool: Claude Code CLI
 
 ## Mutex+Deque 版本 Naive SPSC
 
-### **perf stat：全局计数**
+### ⭐ perf stat：全局计数
 
 `perf stat` 执行命令并输出事件计数。它不做采样，直接读取计数器，**回答"总量"问题**。
 
@@ -139,7 +139,7 @@ WSL2 上实测 `perf stat` 输出（软件事件可计数，硬件事件缺失�
 | `<not supported>` | 该事件本机不可用 | 硬件 PMU 缺失；本输出中 8 个硬件事件均缺失，统计含义见输出块行尾注释 |
 | `user` / `sys` | 用户态 / 内核态 CPU 时间 | 10.813 s / 10.493 s，几乎各占一半 |
 
-#### 性能问题分析
+#### ⭐ 性能问题分析
 
 - **CPU 没跑满：锁等待**：`CPUs utilized` 仅 1.443（双线程应接近 2.0）。互斥使任何时刻只有一个线程在执行临界区，另一个线程在等待（自旋或 futex 睡眠），等待期间不占用 CPU，`task-clock` 因此小于墙钟的两倍，utilized 随之低于 2.0；`context-switches` 为 0，说明等待极短、走自旋而非调度睡眠——"短临界区锁竞争"形态。
 - **内核路径开销太高**：`user`/`sys` 内核态（10.493 s）与用户态（10.813 s）同量级，大量时间耗在 futex 系统调用路径，而非纯用户态计算——与后文 `perf trace` 的 futex 观测相互印证。
@@ -197,7 +197,7 @@ perf report -i /tmp/perf_mutex.data --stdio
 
 本例中 `pthread_mutex_lock` 与 `pthread_mutex_unlock` 的 Self 合计约 40.6%（19.72% + 20.85%），说明约四成 CPU 时间直接耗在锁的获取与释放上；顶层未解析地址的 Children 75.05%，说明大部分采样最终都经过锁路径，锁是支配性的热点。未解析的 libc 地址（`0x…6912f7` 等，合计约 23%）对应 futex 等待与 `__lll_lock_wait` 等内部慢路径。
 
-#### **perf script：导出样本与火焰图**
+#### ⭐ perf script：导出样本与火焰图
 
 `perf script` 把采样数据导出为**每样本一行的原始文本**（含调用栈），是 report 的"数据源"。`perf report` 已聚合占比，`perf script` 保留每个样本的完整栈——常与火焰图工具配合：
 
@@ -210,7 +210,7 @@ perf script -i /tmp/perf_mutex.data | flamegraph.pl > flame.svg # 生成火焰�
 
 图中顶部可见 `pthread_mutex_lock` 等锁路径的宽条——与 `perf report` 的 Self/Children 结论一致：锁是热点。
 
-#### 性能问题分析
+#### ⭐ 性能问题分析
 
 - **锁是支配性热点**：`pthread_mutex_lock` 与 `pthread_mutex_unlock` 的 Self 合计约 40.6%（19.72% + 20.85%），约四成 CPU 时间直接耗在锁的获取与释放上；顶层未解析地址的 Children 75.05%，大部分采样最终都经过锁路径——锁路径确认是瓶颈所在。
 - **等待在锁内部慢路径**：未解析的 libc 地址（`0x…6912f7` 等，合计约 23%）对应 futex 等待与 `__lll_lock_wait` 等内部慢路径，进一步印证 lock/unlock 的 Self 中相当部分属等待而非临界区执行。
@@ -218,7 +218,7 @@ perf script -i /tmp/perf_mutex.data | flamegraph.pl > flame.svg # 生成火焰�
 
 > **VM 待补**：以硬件 `cycles` 为采样事件的 `perf record` 在 VM 上的报告、`cache-references`/`cache-misses` 读数、TMA 指标均待实测补充。
 
-### **perf trace：系统调用追踪**
+### ⭐ perf trace：系统调用追踪
 
 `perf trace` 捕获进程的系统调用，功能与 strace 重叠，但**实现机制不同**：strace 基于 ptrace 逐条拦截，开销大；`perf trace` 直接订阅内核 syscall 事件，对被测程序的时序影响低约一个数量级——对低延迟程序，这决定了工具本身是否改变测量对象。
 
@@ -234,7 +234,7 @@ perf trace -e futex,mmap ./bin/spsc_naive_mutex          # 事件过滤
 
 `--summary` 对执行期间的系统调用按类型聚合，输出每次调用的计数、耗时分布，适合快速判断"程序在系统调用上花了多少时间"。
 
-#### **定位问题一：syscall 调用过多**
+#### ⭐ 定位问题一：syscall 调用过多
 
 `perf stat` 已发现 `sys` 时间（10.493 s）与 `user` 同量级——内核路径开销太高。系统调用是用户态进入内核的唯一通道，下一步用 `perf trace` 量化：到底是哪些 syscall、多少次、花了多少时间。
 
@@ -281,7 +281,7 @@ sudo perf trace --summary ./bin/spsc_naive_mutex
 
 定位结论：syscall 过多的来源已从"内核路径开销太高"细化到具体通道——锁竞争导致的 futex 往返（约 1368 万次、约 46.9 s、32% 为无收益的 EAGAIN），同时动态内存分配（mprotect 128 万次）作为次要但可观的 syscall 开销浮出水面。
 
-#### **定位问题二：缺页**
+#### ⭐ 定位问题二：缺页
 
 > **TODO**：WSL 不提供 `minor-faults` 追踪（无 tracepoint），本节的 `perf trace -e minor-faults` 与 `exceptions:page_fault_user` 均无法验证；需在物理机上实测缺页 tracepoint 的事件流与地址字段。
 
@@ -326,12 +326,12 @@ sudo perf report -i /tmp/pf.data --stdio
 
 > **TODO**：WSL 不提供 `minor-faults` 追踪（无 tracepoint），本节的 `perf trace -e minor-faults` 与 `exceptions:page_fault_user` 均无法验证；需在物理机上实测缺页 tracepoint 的事件流与地址字段。
 
-#### 性能问题分析
+#### ⭐ 性能问题分析
 
 - **syscall 过多：futex 无收益往返**：两线程合计约 1368 万次 futex 调用、累计约 46.9 s，占运行时间（约 14.2 s）的绝大部分，其中约 434 万次（32%）为 EAGAIN 假唤醒——锁竞争在"数量"层面被量化确认。
 - **缺页：动态内存分配**：consumer 侧 128 万次 mprotect 是 syscall 级直接证据；`perf record -e minor-faults -g` 采样显示 91.35% 的缺页样本落在 libc 堆分配路径、2.85% 点名 `deque<Blob>::_M_push_back_aux`——共同指向无界 deque 扩容分配新块。
 
-### **性能分析结论**
+### ⭐ 整体性能结论
 
 三层观测在演示案例上形成交叉验证的证据链，按性能问题组织：
 
@@ -465,7 +465,7 @@ sudo perf trace --summary ./bin/spsc_noalign
 - **futex**：1368 万次 → **1 次**（仅主进程 join 等待，4277 ms）；producer/consumer 线程各 22 个事件，无同步调用；
 - **mprotect**：128 万次 → **0 次**（定长预分配，无动态内存）；
 
-### **性能分析结论**
+### ⭐ 性能分析结论
 
 #### 性能问题一：锁竞争（已消除）
 
@@ -492,7 +492,7 @@ noalign 的两个原子状态 `tail_`/`head_` 未做缓存行填充（验证两�
 
 本机 WSL2 无硬件事件（Hyper-V 未向 guest 暴露 PMU，见 [microsoft/WSL#8155](https://github.com/microsoft/WSL/issues/8155)），无法直接观测 cache miss。**TODO**：需在物理机上用 `perf stat -e cache-misses`、`perf c2c` 直接观测缓存行乒乓的 cache miss 计数，并与下一版做缓存行填充的实现对比。
 
-## **无锁环形队列（最优）**
+## ⭐ 无锁环形队列（near SOTA）
 
 上一节的 `spsc_noalign` 缺陷在于 `tail_`/`head_`/`cachedHead_`/`cachedTail_` 紧邻存放、可能同缓存行。本节 `spsc_align` 修复：四个状态变量各自 `alignas(64)` 独占缓存行，两个物理核各写各的行，消除 false sharing（源码见 [spsc_align.hpp](https://github.com/4thcalabash/qd-knowledge/blob/master/_demo/spsc_perf_test/include/spsc_align.hpp)）。
 
