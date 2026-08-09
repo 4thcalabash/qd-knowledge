@@ -9,18 +9,19 @@
 
 namespace spsc {
 
+template <typename T>
 class Queue {
 public:
     explicit Queue(std::size_t) {}  // deque 无界，容量参数忽略
     Queue(const Queue&) = delete;
     Queue& operator=(const Queue&) = delete;
 
-    void push(std::int64_t v) {
+    void push(const T& v) {
         std::lock_guard<std::mutex> lock(m_);
         q_.push_back(v);
     }
 
-    bool pop(std::int64_t& v) {
+    bool pop(T& v) {
         std::lock_guard<std::mutex> lock(m_);
         if (q_.empty())
             return false;
@@ -31,7 +32,7 @@ public:
 
 private:
     std::mutex m_;
-    std::deque<std::int64_t> q_;
+    std::deque<T> q_;
 };
 
 }  // namespace spsc

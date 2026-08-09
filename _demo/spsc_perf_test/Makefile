@@ -9,7 +9,7 @@
 CXX      ?= g++
 CXXFLAGS ?= -O2 -std=c++17 -Wall -Wextra -pthread -fno-omit-frame-pointer -Iinclude
 BIN      := bin
-IMPLS    := naive_mutex
+IMPLS    := naive_mutex noalign align
 
 TARGETS := $(addprefix $(BIN)/spsc_,$(IMPLS))
 
