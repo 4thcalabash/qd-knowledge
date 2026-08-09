@@ -17,3 +17,7 @@ defaults:
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
+
+# 演示代码不参与站点构建
+exclude:
+  - _demo

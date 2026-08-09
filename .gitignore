@@ -41,3 +41,10 @@ venv/
 
 # Drafts
 drafts/
+
+# Demo 编译产物与观测数据
+_demo/**/bin/
+_demo/**/*.o
+_demo/**/*.d
+_demo/**/perf.data
+_demo/**/*.svg
