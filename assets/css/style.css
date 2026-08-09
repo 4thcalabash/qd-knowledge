@@ -35,6 +35,13 @@ header h1 a {
 header h1 {
     font-size: 28px;
     margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+header h1 .repo-badge img {
+    vertical-align: middle;
 }
 
 header .description {
