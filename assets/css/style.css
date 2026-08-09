@@ -103,21 +103,23 @@ main a:hover {
     display: block;
 }
 
-/* 侧边栏目录：fixed 固定在屏幕最左侧，滚动时高亮当前章节 */
+/* 侧边栏目录：fixed 固定在屏幕最左侧，垂直居中，半透明浮动层 */
 .toc-sidebar {
     display: none;
     position: fixed;
-    top: 24px;
     left: 0;
+    top: 50%;
+    transform: translateY(-50%);
     width: 200px;
     max-height: calc(100vh - 48px);
     overflow-y: auto;
     font-size: 13px;
     line-height: 1.5;
     padding: 12px;
-    background: #fff;
-    border-right: 1px solid #e1e4e8;
-    box-shadow: 1px 0 4px rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.75);
+    border-right: 1px solid rgba(225, 228, 232, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 /* 屏幕足够宽时显示：正文 720px 居中后与侧边栏不重叠 */
@@ -141,7 +143,12 @@ main a:hover {
 }
 
 .toc-sidebar li {
-    margin-bottom: 2px;
+    border-bottom: 1px solid rgba(225, 228, 232, 0.6);
+    padding: 2px 0;
+}
+
+.toc-sidebar li:last-child {
+    border-bottom: none;
 }
 
 .toc-sidebar li.toc-h3 {
