@@ -155,6 +155,15 @@ main a:hover {
     padding-left: 16px;
 }
 
+.toc-sidebar li.toc-h4 {
+    padding-left: 32px;
+    font-size: 12px;
+}
+
+.toc-sidebar ul.toc-sub.collapsed {
+    display: none;
+}
+
 .toc-sidebar a {
     display: block;
     color: #586069;
