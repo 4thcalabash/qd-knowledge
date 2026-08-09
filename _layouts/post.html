@@ -12,11 +12,15 @@ layout: default
         {% endif %}
     </header>
 
-    <div class="post-content">
-        {{ content }}
+    <div class="post-layout">
+        <aside class="toc-sidebar" id="toc-sidebar" aria-label="章节目录"></aside>
+        <div class="post-content">
+            {{ content }}
+        </div>
     </div>
 
     <nav class="post-nav">
         <a href="{{ site.baseurl }}/">&larr; 返回首页</a>
     </nav>
 </article>
+<script src="{{ site.baseurl }}/assets/js/toc.js"></script>

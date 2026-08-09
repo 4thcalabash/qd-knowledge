@@ -52,11 +52,13 @@ main h2 {
     margin: 32px 0 16px;
     padding-bottom: 8px;
     border-bottom: 1px solid #e1e4e8;
+    scroll-margin-top: 140px;
 }
 
 main h3 {
     font-size: 18px;
     margin: 24px 0 12px;
+    scroll-margin-top: 140px;
 }
 
 main p {
@@ -96,6 +98,75 @@ main a:hover {
 }
 
 /* Post */
+.post-layout {
+    display: flex;
+    gap: 40px;
+}
+
+/* 侧边栏目录：sticky 跟随滚动，当前章节高亮 */
+.toc-sidebar {
+    display: none;
+    position: sticky;
+    top: 24px;
+    align-self: flex-start;
+    flex: 0 0 220px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    padding-right: 12px;
+    border-right: 1px solid #e1e4e8;
+}
+
+@media (min-width: 1080px) {
+    .toc-sidebar {
+        display: block;
+    }
+}
+
+.toc-sidebar .toc-title {
+    font-weight: 600;
+    color: #24292f;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.toc-sidebar ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.toc-sidebar li {
+    margin-bottom: 2px;
+}
+
+.toc-sidebar li.toc-h3 {
+    padding-left: 16px;
+}
+
+.toc-sidebar a {
+    display: block;
+    color: #586069;
+    text-decoration: none;
+    padding: 2px 4px;
+    border-radius: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.toc-sidebar a:hover {
+    color: #0366d6;
+    background: #f6f8fa;
+}
+
+.toc-sidebar a.active {
+    color: #0366d6;
+    font-weight: 600;
+    background: #f6f8fa;
+}
+
 .post-header {
     margin-bottom: 32px;
 }
