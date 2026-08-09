@@ -9,6 +9,8 @@ title: 首页
 
 ⭐ 带星标的内容务必重点阅读。
 
+[![GitHub stars](https://img.shields.io/github/stars/4thcalabash/qd-knowledge?style=social)](https://github.com/4thcalabash/qd-knowledge) — 源码与演示代码
+
 ## 文章列表
 
 {% for post in site.posts %}
