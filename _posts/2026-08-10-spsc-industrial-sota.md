@@ -23,7 +23,7 @@ SPSC（Single Producer Single Consumer）无锁队列是低延迟系统中核间
 
 ![SPSC 内存布局]({{ site.baseurl }}/assets/images/spsc-memory-layout.svg)
 
-##### 状态变量区
+#### 状态变量区
 
 控制状态以 Head/Tail 两个原子索引为核心，各自 `alignas(kCacheLineSize)` 独占缓存行（图中字段两侧的 Pad 即隔离带）。
 
@@ -36,11 +36,11 @@ SPSC（Single Producer Single Consumer）无锁队列是低延迟系统中核间
 
 图上另有 Head Cache / Tail Cache 两个字段，是 Head/Tail 的本地缓存副本，动机与机制见性能优化细节。
 
-##### 数据槽位区
+#### 数据槽位区
 
 槽位无填充、紧密排列——数据流方向固定（生产者写 → 消费者读），多个小对象共行一次性搬运，无填充是特性而非缺陷。
 
-##### 首尾填充 kPadding
+#### 首尾填充 kPadding
 
 ```cpp
 static constexpr size_t kPadding = (kCacheLineSize - 1) / sizeof(T) + 1;
@@ -48,7 +48,7 @@ static constexpr size_t kPadding = (kCacheLineSize - 1) / sizeof(T) + 1;
 
 `slots_` 独立堆分配，首尾各 `kPadding` 个元素永不使用，避免最边上真实槽位与堆中相邻对象共享缓存行。
 
-##### slack 元素
+#### ⭐ slack 元素
 
 有效容量比申请量少 1（有效空间不包含首尾 padding）：`capacity_ = capacity + 1`，暴露 `capacity() = capacity_ - 1`，剩余一个槽位永不装数据，用于满判定：
 
@@ -153,15 +153,15 @@ private:
 
 ### 性能优化细节
 
-##### 缓存行隔离
+#### ⭐ 缓存行隔离
 
 状态变量独占缓存行是关键（约提升 30%）；false sharing 消除后接近纯数据搬运成本。
 
-##### Head/Tail Cache
+#### ⭐ Head/Tail Cache
 
 动机：atomic load 本身有代价（跨核缓存行拉取）。机制：把对端索引的"快照"缓存到本地（`readIdxCache_` 是生产者的、`writeIdxCache_` 是消费者的——谁缓存"对方的索引"归谁管），仅当缓存值与下一索引相等（可能满）时才 acquire 读对端索引刷新，否则不触碰对端缓存行。正确性边界：快照只用于"还有空间"这类乐观判断，过期只会多触发一次刷新，绝不误判"已满"——纯性能优化，不改变语义。
 
-##### 官方 benchmark
+#### 官方 benchmark
 
 AMD Ryzen 9 3900X，同 chiplet 不同核，`int` 元素（rigtorp README）：
 
